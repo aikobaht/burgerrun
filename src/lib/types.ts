@@ -6,6 +6,7 @@ export interface Group {
   created_at: string;
   expires_at: string;
   is_active: boolean;
+  is_finalized?: boolean;
 }
 
 export interface Order {

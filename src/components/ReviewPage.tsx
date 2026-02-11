@@ -1,16 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
 import { formatCustomizations } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { ArrowLeft, Trash2, Printer } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowLeft, Trash2, Printer, Lock, Unlock } from 'lucide-react';
 
 export function ReviewPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
-  const { session, currentGroup, orders, orderItems, setOrders, setOrderItems } = useStore();
+  const { session, currentGroup, orders, orderItems, setOrders, setOrderItems, setCurrentGroup } = useStore();
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   useEffect(() => {
     if (!session?.isOrganizer || session.groupId !== groupId) {
@@ -117,6 +119,56 @@ export function ReviewPage() {
     }
   };
 
+  const handleFinalizeOrder = async () => {
+    if (!currentGroup) return;
+
+    if (!confirm('Finalize this order? Changes will be locked until reopened.')) return;
+
+    setIsFinalizing(true);
+
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ is_finalized: true })
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      setCurrentGroup({ ...currentGroup, is_finalized: true });
+      toast.success('Order finalized! No more changes allowed.');
+    } catch (err) {
+      console.error('Error finalizing order:', err);
+      toast.error('Failed to finalize order');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  const handleReopenOrder = async () => {
+    if (!currentGroup) return;
+
+    if (!confirm('Reopen this order? Changes will be allowed again.')) return;
+
+    setIsFinalizing(true);
+
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ is_finalized: false })
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      setCurrentGroup({ ...currentGroup, is_finalized: false });
+      toast.success('Order reopened! Changes are now allowed.');
+    } catch (err) {
+      console.error('Error reopening order:', err);
+      toast.error('Failed to reopen order');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
   if (!session?.isOrganizer || !currentGroup) {
     return <div>Loading...</div>;
   }
@@ -142,7 +194,7 @@ export function ReviewPage() {
               <p className="text-sm opacity-90">{currentGroup.name}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               size="sm"
               variant="secondary"
@@ -152,9 +204,45 @@ export function ReviewPage() {
               <Printer className="w-4 h-4 mr-1" />
               Print View
             </Button>
+            {!currentGroup.is_finalized ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleFinalizeOrder}
+                disabled={isFinalizing}
+                className="text-xs text-white border-white hover:bg-white/20"
+              >
+                <Lock className="w-4 h-4 mr-1" />
+                {isFinalizing ? 'Finalizing...' : 'Finalize Order'}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleReopenOrder}
+                disabled={isFinalizing}
+                className="text-xs text-white border-white hover:bg-white/20"
+              >
+                <Unlock className="w-4 h-4 mr-1" />
+                {isFinalizing ? 'Reopening...' : 'Reopen Order'}
+              </Button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Finalized Banner */}
+      {currentGroup.is_finalized && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 max-w-4xl mx-auto mt-4">
+          <p className="text-yellow-700 font-semibold flex items-center gap-2">
+            <Lock className="w-5 h-5" />
+            Order Finalized
+          </p>
+          <p className="text-sm text-yellow-600 mt-1">
+            This order is locked and cannot be modified. Click "Reopen Order" to allow changes.
+          </p>
+        </div>
+      )}
 
       <div className="max-w-4xl mx-auto p-4">
         {/* Summary */}
@@ -198,6 +286,8 @@ export function ReviewPage() {
                       variant="ghost"
                       className="text-destructive hover:text-destructive h-8 w-8"
                       onClick={() => handleDeleteOrder(order.id, order.person_name)}
+                      disabled={currentGroup.is_finalized}
+                      title={currentGroup.is_finalized ? 'Order is finalized' : 'Delete order'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -222,6 +312,8 @@ export function ReviewPage() {
                               variant="ghost"
                               className="h-6 w-6 text-destructive hover:text-destructive"
                               onClick={() => handleDeleteItem(item.id)}
+                              disabled={currentGroup.is_finalized}
+                              title={currentGroup.is_finalized ? 'Order is finalized' : 'Delete item'}
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>

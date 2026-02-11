@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
 import { generateShareUrl, copyToClipboard } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Skeleton } from './ui/skeleton';
 import { MenuItemCard } from './MenuItemCard';
 import { OrderSummary } from './OrderSummary';
 import { categories, getMenuItemsByCategory, getSecretMenuItems } from '@/lib/menu';
-import { Share2, Eye, Printer } from 'lucide-react';
+import { Share2, Eye, Printer, QrCode } from 'lucide-react';
 import type { Order, OrderItem } from '@/lib/types';
 
 export function OrderPage() {
@@ -27,6 +30,8 @@ export function OrderPage() {
   const [activeCategory, setActiveCategory] = useState('Burgers');
   const [showSecretMenu, setShowSecretMenu] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!session || session.groupId !== groupId) {
@@ -34,7 +39,13 @@ export function OrderPage() {
       return;
     }
 
-    loadGroupData();
+    const initData = async () => {
+      setIsLoading(true);
+      await loadGroupData();
+      setIsLoading(false);
+    };
+
+    initData();
     subscribeToRealtime();
   }, [groupId, session]);
 
@@ -150,13 +161,35 @@ export function OrderPage() {
     ? getSecretMenuItems()
     : getMenuItemsByCategory(activeCategory);
 
+  // Count items in current user's order
+  const currentOrder = orders.find(
+    (o) => o.person_token === session.personToken && o.group_id === session.groupId
+  );
+  const myItemCount = currentOrder
+    ? orderItems
+        .filter((item) => item.order_id === currentOrder.id)
+        .reduce((sum, item) => sum + item.quantity, 0)
+    : 0;
+
+  const shareUrl = generateShareUrl(groupId!);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white pb-20">
       {/* Header */}
       <div className="bg-innout-red text-white p-4 sticky top-0 z-10 shadow-md">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-1">{currentGroup.name}</h1>
-          <p className="text-sm opacity-90">Organized by {currentGroup.organizer_name}</p>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <div>
+              <h1 className="text-2xl font-bold">{currentGroup.name}</h1>
+              <p className="text-sm opacity-90">Organized by {currentGroup.organizer_name}</p>
+            </div>
+            {/* Order Count Badge */}
+            {myItemCount > 0 && (
+              <div className="bg-innout-red border-2 border-white rounded-full w-10 h-10 flex items-center justify-center text-white font-bold text-sm">
+                {myItemCount}
+              </div>
+            )}
+          </div>
           
           <div className="flex gap-2 mt-3 flex-wrap">
             <Button
@@ -167,6 +200,15 @@ export function OrderPage() {
             >
               <Share2 className="w-4 h-4 mr-1" />
               {copiedLink ? 'Link Copied!' : 'Share Link'}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setShowQRModal(true)}
+              className="text-xs"
+            >
+              <QrCode className="w-4 h-4 mr-1" />
+              QR Code
             </Button>
             {session.isOrganizer && (
               <>
@@ -194,7 +236,46 @@ export function OrderPage() {
         </div>
       </div>
 
+      {/* QR Code Modal */}
+      <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
+        <DialogContent onClose={() => setShowQRModal(false)}>
+          <DialogHeader>
+            <DialogTitle>Share Order Group</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="bg-white p-4 rounded-lg border-2 border-innout-yellow">
+              <QRCodeSVG
+                value={shareUrl}
+                size={256}
+                level="H"
+                includeMargin={true}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Scan this QR code to join the order group
+            </p>
+            <Button
+              onClick={handleShareLink}
+              className="w-full"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              {copiedLink ? 'Link Copied!' : 'Copy Link'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="max-w-4xl mx-auto p-4">
+        {/* Finalized Banner */}
+        {currentGroup.is_finalized && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+            <p className="text-yellow-700 font-semibold">Order Finalized</p>
+            <p className="text-sm text-yellow-600 mt-1">
+              This order is locked. You cannot add or modify items.
+            </p>
+          </div>
+        )}
+
         {/* Category Navigation */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
           {categories.map((category) => (
@@ -222,13 +303,24 @@ export function OrderPage() {
 
         {/* Menu Items */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {menuItemsToShow.map((item) => (
-            <MenuItemCard key={item.id} item={item} />
-          ))}
+          {isLoading ? (
+            <>
+              <Skeleton className="h-80" />
+              <Skeleton className="h-80" />
+            </>
+          ) : (
+            menuItemsToShow.map((item) => (
+              <MenuItemCard 
+                key={item.id} 
+                item={item}
+                isFinalized={currentGroup.is_finalized || false}
+              />
+            ))
+          )}
         </div>
 
         {/* Order Summary */}
-        <OrderSummary />
+        <OrderSummary isFinalized={currentGroup.is_finalized || false} />
       </div>
     </div>
   );

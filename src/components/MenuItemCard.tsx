@@ -12,9 +12,10 @@ import type { MenuItem, Customization } from '@/lib/types';
 
 interface MenuItemCardProps {
   item: MenuItem;
+  isFinalized?: boolean;
 }
 
-export function MenuItemCard({ item }: MenuItemCardProps) {
+export function MenuItemCard({ item, isFinalized = false }: MenuItemCardProps) {
   const { session, orders } = useStore();
   const [quantity, setQuantity] = useState(1);
   const [customizations, setCustomizations] = useState<Record<string, string>>(() => {
@@ -171,11 +172,12 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
           <Button
             className="flex-1"
             onClick={handleAddToOrder}
-            disabled={adding}
+            disabled={adding || isFinalized}
             size="sm"
+            title={isFinalized ? 'Order is finalized' : ''}
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
-            {adding ? 'Adding...' : 'Add to Order'}
+            {isFinalized ? 'Order Finalized' : adding ? 'Adding...' : 'Add to Order'}
           </Button>
         </div>
       </CardContent>

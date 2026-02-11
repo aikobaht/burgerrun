@@ -12,7 +12,8 @@ CREATE TABLE groups (
   organizer_token UUID NOT NULL DEFAULT uuid_generate_v4(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '24 hours'),
-  is_active BOOLEAN DEFAULT true
+  is_active BOOLEAN DEFAULT true,
+  is_finalized BOOLEAN DEFAULT false
 );
 
 -- Orders table
