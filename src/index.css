@@ -33,6 +33,68 @@
     --radius: 0.5rem;
   }
 
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 0 0% 13%;
+      --foreground: 48 100% 96%;
+
+      --card: 0 0% 20%;
+      --card-foreground: 48 100% 96%;
+
+      --popover: 0 0% 20%;
+      --popover-foreground: 48 100% 96%;
+
+      --primary: 350 87% 60%;
+      --primary-foreground: 0 0% 20%;
+
+      --secondary: 48 100% 50%;
+      --secondary-foreground: 0 0% 13%;
+
+      --muted: 0 0% 30%;
+      --muted-foreground: 0 0% 70%;
+
+      --accent: 48 100% 50%;
+      --accent-foreground: 0 0% 13%;
+
+      --destructive: 0 84% 75%;
+      --destructive-foreground: 0 0% 20%;
+
+      --border: 0 0% 30%;
+      --input: 0 0% 25%;
+      --ring: 350 87% 60%;
+    }
+  }
+
+  .dark {
+    --background: 0 0% 13%;
+    --foreground: 48 100% 96%;
+
+    --card: 0 0% 20%;
+    --card-foreground: 48 100% 96%;
+
+    --popover: 0 0% 20%;
+    --popover-foreground: 48 100% 96%;
+
+    --primary: 350 87% 60%;
+    --primary-foreground: 0 0% 20%;
+
+    --secondary: 48 100% 50%;
+    --secondary-foreground: 0 0% 13%;
+
+    --muted: 0 0% 30%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 48 100% 50%;
+    --accent-foreground: 0 0% 13%;
+
+    --destructive: 0 84% 75%;
+    --destructive-foreground: 0 0% 20%;
+
+    --border: 0 0% 30%;
+    --input: 0 0% 25%;
+    --ring: 350 87% 60%;
+  }
+
   * {
     border-color: hsl(var(--border));
   }
@@ -47,5 +109,30 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* In-N-Out color variables for dark mode */
+  .dark .bg-innout-cream {
+    @apply bg-slate-900;
+  }
+
+  .dark .bg-gradient-to-b.from-innout-cream {
+    @apply from-slate-950;
+  }
+
+  .dark .text-innout-red {
+    @apply text-red-400;
+  }
+
+  .dark .border-innout-red {
+    @apply border-red-400;
+  }
+
+  .dark .border-innout-yellow {
+    @apply border-yellow-500;
+  }
+
+  .dark .bg-innout-yellow {
+    @apply bg-yellow-500;
   }
 }

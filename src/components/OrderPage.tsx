@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
 import { generateShareUrl, copyToClipboard } from '@/lib/utils';
@@ -11,10 +12,15 @@ import { Skeleton } from './ui/skeleton';
 import { MenuItemCard } from './MenuItemCard';
 import { OrderSummary } from './OrderSummary';
 import { categories, getMenuItemsByCategory, getSecretMenuItems } from '@/lib/menu';
-import { Share2, Eye, Printer, QrCode } from 'lucide-react';
+import { Share2, Eye, Printer, QrCode, Moon, Sun } from 'lucide-react';
 import type { Order, OrderItem } from '@/lib/types';
 
-export function OrderPage() {
+interface OrderPageProps {
+  darkMode?: boolean;
+  onDarkModeChange?: (dark: boolean) => void;
+}
+
+export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps) {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const {
@@ -48,6 +54,112 @@ export function OrderPage() {
     initData();
     subscribeToRealtime();
   }, [groupId, session]);
+
+  // Check if group is expired
+  const isExpired = () => {
+    if (!currentGroup) return false;
+    const now = new Date();
+    const expiresAt = new Date(currentGroup.expires_at);
+    return now > expiresAt;
+  };
+
+  // Quick combo definitions
+  const quickCombos = [
+    {
+      id: 'double-double-combo',
+      name: 'Double-Double Combo',
+      items: [
+        { menuItemId: 'double-double', quantity: 1 },
+        { menuItemId: 'fries', quantity: 1 },
+        { menuItemId: 'fountain-drink', quantity: 1 },
+      ],
+    },
+    {
+      id: 'cheeseburger-combo',
+      name: 'Cheeseburger Combo',
+      items: [
+        { menuItemId: 'cheeseburger', quantity: 1 },
+        { menuItemId: 'fries', quantity: 1 },
+        { menuItemId: 'fountain-drink', quantity: 1 },
+      ],
+    },
+    {
+      id: 'animal-style-combo',
+      name: 'Animal Style Combo',
+      items: [
+        { menuItemId: 'animal-style', quantity: 1 },
+        { menuItemId: 'animal-fries', quantity: 1 },
+        { menuItemId: 'shake', quantity: 1 },
+      ],
+    },
+  ];
+
+  const handleAddQuickCombo = async (combo: typeof quickCombos[0]) => {
+    if (!session?.orderId && !session?.isOrganizer) return;
+
+    try {
+      // If organizer and no order, create one first
+      let orderId = session.orderId;
+      
+      if (session.isOrganizer && !orderId) {
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            group_id: session.groupId,
+            person_name: session.personName,
+            person_token: session.personToken,
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+        orderId = orderData.id;
+        
+        // Update session with order ID
+        useStore.getState().setSession({
+          ...session,
+          orderId: orderData.id,
+        });
+      }
+
+      // Add all items from the combo
+      for (const item of combo.items) {
+        const menuItem = getMenuItemsByCategory('Burgers').concat(
+          getMenuItemsByCategory('Fries'),
+          getMenuItemsByCategory('Drinks'),
+          getMenuItemsByCategory('Shakes'),
+          getSecretMenuItems()
+        ).find(m => m.id === item.menuItemId);
+
+        if (!menuItem) continue;
+
+        // Build customizations with defaults
+        const customizationsArray = menuItem.customizationOptions.map((opt) => ({
+          type: opt.type,
+          value: String(opt.default || (opt.options?.[0] || '')),
+          label: opt.label,
+        }));
+
+        const { error } = await supabase.from('order_items').insert({
+          order_id: orderId!,
+          menu_item_id: menuItem.id,
+          menu_item_name: menuItem.name,
+          menu_category: menuItem.category,
+          quantity: item.quantity,
+          customizations: customizationsArray,
+          special_instructions: null,
+        });
+
+        if (error) throw error;
+      }
+
+      // Show success feedback
+      toast.success(`Added ${combo.name}!`);
+    } catch (err) {
+      console.error('Error adding combo:', err);
+      toast.error('Failed to add combo. Please try again.');
+    }
+  };
 
   const loadGroupData = async () => {
     if (!groupId) return;
@@ -174,21 +286,31 @@ export function OrderPage() {
   const shareUrl = generateShareUrl(groupId!);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 pb-20">
       {/* Header */}
-      <div className="bg-innout-red text-white p-4 sticky top-0 z-10 shadow-md">
+      <div className="bg-innout-red dark:bg-red-700 text-white p-4 sticky top-0 z-10 shadow-md">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div>
               <h1 className="text-2xl font-bold">{currentGroup.name}</h1>
               <p className="text-sm opacity-90">Organized by {currentGroup.organizer_name}</p>
             </div>
-            {/* Order Count Badge */}
-            {myItemCount > 0 && (
-              <div className="bg-innout-red border-2 border-white rounded-full w-10 h-10 flex items-center justify-center text-white font-bold text-sm">
-                {myItemCount}
-              </div>
-            )}
+            <div className="flex gap-2 items-start">
+              {/* Order Count Badge */}
+              {myItemCount > 0 && (
+                <div className="bg-innout-red dark:bg-red-700 border-2 border-white rounded-full w-10 h-10 flex items-center justify-center text-white font-bold text-sm">
+                  {myItemCount}
+                </div>
+              )}
+              <Button
+                size="icon"
+                variant="secondary"
+                onClick={() => onDarkModeChange?.(!darkMode)}
+                className="text-xs"
+              >
+                {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
           
           <div className="flex gap-2 mt-3 flex-wrap">
@@ -266,6 +388,23 @@ export function OrderPage() {
       </Dialog>
 
       <div className="max-w-4xl mx-auto p-4">
+        {/* Expiration Banner */}
+        {isExpired() && (
+          <div className="bg-red-100 border-l-4 border-red-500 p-4 mb-4">
+            <p className="text-red-700 font-semibold">This order has expired</p>
+            <p className="text-sm text-red-600 mt-1">
+              This order expired and is no longer accepting new items.{' '}
+              <Button
+                variant="link"
+                className="p-0 h-auto font-semibold text-red-700 hover:text-red-900"
+                onClick={() => navigate('/')}
+              >
+                Create a new order
+              </Button>
+            </p>
+          </div>
+        )}
+
         {/* Finalized Banner */}
         {currentGroup.is_finalized && (
           <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
@@ -274,6 +413,29 @@ export function OrderPage() {
               This order is locked. You cannot add or modify items.
             </p>
           </div>
+        )}
+
+        {/* Quick Combos Section */}
+        {!isExpired() && !currentGroup.is_finalized && (
+          <Card className="mb-6 bg-innout-cream border-innout-red border-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg text-innout-red">⚡ Quick Combos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {quickCombos.map((combo) => (
+                  <Button
+                    key={combo.id}
+                    onClick={() => handleAddQuickCombo(combo)}
+                    variant="outline"
+                    className="border-innout-red border-2 text-innout-red hover:bg-innout-red hover:text-white"
+                  >
+                    {combo.name}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Category Navigation */}

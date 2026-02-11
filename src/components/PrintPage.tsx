@@ -4,9 +4,14 @@ import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
 import { formatCustomizations } from '@/lib/utils';
 import { Button } from './ui/button';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, Moon, Sun } from 'lucide-react';
 
-export function PrintPage() {
+interface PrintPageProps {
+  darkMode?: boolean;
+  onDarkModeChange?: (dark: boolean) => void;
+}
+
+export function PrintPage({ darkMode = false, onDarkModeChange }: PrintPageProps) {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { session, currentGroup, orders, orderItems, setOrders, setOrderItems } = useStore();
@@ -69,21 +74,31 @@ export function PrintPage() {
   return (
     <>
       {/* Screen-only header */}
-      <div className="print:hidden bg-innout-red text-white p-4 sticky top-0 z-10 shadow-md">
+      <div className="print:hidden bg-innout-red dark:bg-red-700 text-white p-4 sticky top-0 z-10 shadow-md">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                size="icon"
+                variant="secondary"
+                onClick={() => navigate(`/group/${groupId}/review`)}
+                className="h-8 w-8"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold">Print View</h1>
+                <p className="text-sm opacity-90">{currentGroup.name}</p>
+              </div>
+            </div>
             <Button
               size="icon"
               variant="secondary"
-              onClick={() => navigate(`/group/${groupId}/review`)}
-              className="h-8 w-8"
+              onClick={() => onDarkModeChange?.(!darkMode)}
+              className="text-xs h-8 w-8"
             >
-              <ArrowLeft className="w-4 h-4" />
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            <div>
-              <h1 className="text-xl font-bold">Print View</h1>
-              <p className="text-sm opacity-90">{currentGroup.name}</p>
-            </div>
           </div>
           <Button
             size="sm"

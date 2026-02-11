@@ -2,13 +2,18 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
-import { formatCustomizations } from '@/lib/utils';
+import { formatCustomizations, copyToClipboard } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Trash2, Printer, Lock, Unlock } from 'lucide-react';
+import { ArrowLeft, Trash2, Printer, Lock, Unlock, Copy, Moon, Sun } from 'lucide-react';
 
-export function ReviewPage() {
+interface ReviewPageProps {
+  darkMode?: boolean;
+  onDarkModeChange?: (dark: boolean) => void;
+}
+
+export function ReviewPage({ darkMode = false, onDarkModeChange }: ReviewPageProps) {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { session, currentGroup, orders, orderItems, setOrders, setOrderItems, setCurrentGroup } = useStore();
@@ -169,6 +174,27 @@ export function ReviewPage() {
     }
   };
 
+  const handleCopyOrder = async (personName: string, items: typeof orderItems) => {
+    try {
+      let orderText = `${personName}'s Order:\n`;
+      items.forEach((item) => {
+        orderText += `- ${item.quantity}x ${item.menu_item_name}\n`;
+        if (item.customizations && (item.customizations as any[]).length > 0) {
+          orderText += `  ${formatCustomizations(item.customizations as any)}\n`;
+        }
+        if (item.special_instructions) {
+          orderText += `  Note: ${item.special_instructions}\n`;
+        }
+      });
+
+      await copyToClipboard(orderText);
+      toast.success(`Copied ${personName}'s order!`);
+    } catch (err) {
+      console.error('Error copying order:', err);
+      toast.error('Failed to copy order');
+    }
+  };
+
   if (!session?.isOrganizer || !currentGroup) {
     return <div>Loading...</div>;
   }
@@ -176,23 +202,33 @@ export function ReviewPage() {
   const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white">
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900">
       {/* Header */}
-      <div className="bg-innout-red text-white p-4 sticky top-0 z-10 shadow-md">
+      <div className="bg-innout-red dark:bg-red-700 text-white p-4 sticky top-0 z-10 shadow-md">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                size="icon"
+                variant="secondary"
+                onClick={() => navigate(`/group/${groupId}`)}
+                className="h-8 w-8"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold">Review Orders</h1>
+                <p className="text-sm opacity-90">{currentGroup.name}</p>
+              </div>
+            </div>
             <Button
               size="icon"
               variant="secondary"
-              onClick={() => navigate(`/group/${groupId}`)}
-              className="h-8 w-8"
+              onClick={() => onDarkModeChange?.(!darkMode)}
+              className="text-xs h-8 w-8"
             >
-              <ArrowLeft className="w-4 h-4" />
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            <div>
-              <h1 className="text-xl font-bold">Review Orders</h1>
-              <p className="text-sm opacity-90">{currentGroup.name}</p>
-            </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
@@ -281,16 +317,27 @@ export function ReviewPage() {
                         {itemCount} {itemCount === 1 ? 'item' : 'items'}
                       </p>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive h-8 w-8"
-                      onClick={() => handleDeleteOrder(order.id, order.person_name)}
-                      disabled={currentGroup.is_finalized}
-                      title={currentGroup.is_finalized ? 'Order is finalized' : 'Delete order'}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-innout-red hover:text-innout-red h-8 w-8"
+                        onClick={() => handleCopyOrder(order.person_name, items)}
+                        title="Copy order"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive h-8 w-8"
+                        onClick={() => handleDeleteOrder(order.id, order.person_name)}
+                        disabled={currentGroup.is_finalized}
+                        title={currentGroup.is_finalized ? 'Order is finalized' : 'Delete order'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">

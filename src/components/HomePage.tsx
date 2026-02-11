@@ -7,8 +7,14 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Moon, Sun } from 'lucide-react';
 
-export function HomePage() {
+interface HomePageProps {
+  darkMode?: boolean;
+  onDarkModeChange?: (dark: boolean) => void;
+}
+
+export function HomePage({ darkMode = false, onDarkModeChange }: HomePageProps) {
   const navigate = useNavigate();
   const setSession = useStore((state) => state.setSession);
   const setCurrentGroup = useStore((state) => state.setCurrentGroup);
@@ -32,12 +38,17 @@ export function HomePage() {
     try {
       const organizerToken = crypto.randomUUID();
       
+      // Calculate expires_at as 24 hours from now
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
       const { data, error } = await supabase
         .from('groups')
         .insert({
           name: groupName,
           organizer_name: organizerName,
           organizer_token: organizerToken,
+          expires_at: expiresAt.toISOString(),
         })
         .select()
         .single();
@@ -71,10 +82,22 @@ export function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white p-4 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4">
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={() => onDarkModeChange?.(!darkMode)}
+          className="rounded-full"
+        >
+          {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
+      </div>
+
       <Card className="w-full max-w-md border-innout-red border-2">
         <CardHeader className="text-center">
-          <CardTitle className="text-4xl font-bold text-innout-red mb-2">
+          <CardTitle className="text-4xl font-bold text-innout-red dark:text-red-400 mb-2">
             🍔 BurgerRun
           </CardTitle>
           <CardDescription className="text-lg">

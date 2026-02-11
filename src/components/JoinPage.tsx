@@ -7,18 +7,25 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Moon, Sun } from 'lucide-react';
 import type { Group } from '@/lib/types';
 
-export function JoinPage() {
+interface JoinPageProps {
+  darkMode?: boolean;
+  onDarkModeChange?: (dark: boolean) => void;
+}
+
+export function JoinPage({ darkMode = false, onDarkModeChange }: JoinPageProps) {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
-  const { setSession, setCurrentGroup, session } = useStore();
+  const { setSession, setCurrentGroup, session, orders } = useStore();
   
   const [group, setGroup] = useState<Group | null>(null);
   const [personName, setPersonName] = useState('');
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
+  const [duplicateWarning, setDuplicateWarning] = useState('');
 
   useEffect(() => {
     loadGroup();
@@ -42,12 +49,31 @@ export function JoinPage() {
       if (error) throw error;
 
       if (!data) {
-        setError('Group not found or expired');
+        setError('Group not found or inactive');
+        setLoading(false);
+        return;
+      }
+
+      // Check if group has expired
+      const now = new Date();
+      const expiresAt = new Date(data.expires_at);
+      if (now > expiresAt) {
+        setError('This order has expired');
         setLoading(false);
         return;
       }
 
       setGroup(data);
+      
+      // Load existing orders for duplicate check
+      const { data: existingOrders } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('group_id', groupId);
+
+      if (existingOrders) {
+        useStore.getState().setOrders(existingOrders);
+      }
       
       // Check if user already has a session for this group
       if (session?.groupId === groupId) {
@@ -58,6 +84,23 @@ export function JoinPage() {
       setError('Failed to load group');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePersonNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setPersonName(name);
+    
+    // Check for duplicate names
+    if (name.trim()) {
+      const existingNames = orders.map(o => o.person_name.toLowerCase());
+      if (existingNames.includes(name.toLowerCase())) {
+        setDuplicateWarning(`"${name}" already joined this order. Consider adding your last initial (e.g., "${name} T.") for clarity.`);
+      } else {
+        setDuplicateWarning('');
+      }
+    } else {
+      setDuplicateWarning('');
     }
   };
 
@@ -118,7 +161,7 @@ export function JoinPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
         <Card className="w-full max-w-md border-innout-red border-2">
           <CardContent className="p-6 text-center">
             Loading...
@@ -130,7 +173,17 @@ export function JoinPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
+        <div className="absolute top-4 right-4">
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => onDarkModeChange?.(!darkMode)}
+            className="rounded-full"
+          >
+            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
+        </div>
         <Card className="w-full max-w-md border-innout-red border-2">
           <CardContent className="p-6 text-center">
             <p className="text-destructive mb-4">{error}</p>
@@ -142,7 +195,19 @@ export function JoinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white p-4 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4">
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={() => onDarkModeChange?.(!darkMode)}
+          className="rounded-full"
+        >
+          {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
+      </div>
+
       <Card className="w-full max-w-md border-innout-red border-2">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold text-innout-red mb-2">
@@ -158,15 +223,18 @@ export function JoinPage() {
         <CardContent>
           <form onSubmit={handleJoin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="personName">Your Name</Label>
+              <Label htmlFor="personName">Your Name (e.g., Alex or Alex T.)</Label>
               <Input
                 id="personName"
                 placeholder="Your name"
                 value={personName}
-                onChange={(e) => setPersonName(e.target.value)}
+                onChange={handlePersonNameChange}
                 disabled={joining}
                 autoFocus
               />
+              {duplicateWarning && (
+                <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">{duplicateWarning}</p>
+              )}
             </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>
