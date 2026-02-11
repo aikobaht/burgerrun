@@ -87,7 +87,7 @@ export const useStore = create<AppState>()(
         const state = get();
         return state.orders.map((order) => ({
           order,
-          items: state.orderItems.filter((item) => item.order_id === orderId),
+          items: state.orderItems.filter((item) => item.order_id === order.id),
         }));
       },
       
