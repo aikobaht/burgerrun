@@ -394,6 +394,21 @@ export const menuItems: MenuItem[] = [
       },
     ],
   },
+  {
+    id: 'pup-patty',
+    name: 'Pup Patty',
+    category: 'Burgers',
+    description: 'Plain unsalted patty (for your furry friend)',
+    isSecretMenu: true,
+    customizationOptions: [
+      {
+        type: 'patty_count',
+        label: 'Number of Patties',
+        options: ['1', '2', '3'],
+        default: '1',
+      },
+    ],
+  },
 
   // Fries
   {

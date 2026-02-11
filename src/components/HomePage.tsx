@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Users, Clipboard, Share2, Check } from 'lucide-react';
 
 interface HomePageProps {
   darkMode?: boolean;
@@ -82,7 +82,7 @@ export function HomePage({ darkMode = false, onDarkModeChange }: HomePageProps) 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900">
       {/* Dark Mode Toggle */}
       <div className="absolute top-4 right-4">
         <Button
@@ -95,56 +95,132 @@ export function HomePage({ darkMode = false, onDarkModeChange }: HomePageProps) 
         </Button>
       </div>
 
-      <Card className="w-full max-w-md border-innout-red border-2">
-        <CardHeader className="text-center">
-          <CardTitle className="text-4xl font-bold text-innout-red dark:text-red-400 mb-2">
-            🍔 BurgerRun
-          </CardTitle>
-          <CardDescription className="text-lg">
-            Organize your In-N-Out group order
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreateGroup} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="groupName">Order Name</Label>
-              <Input
-                id="groupName"
-                placeholder="Friday Lunch"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                disabled={loading}
-              />
+      {/* Hero Section */}
+      <div className="pt-12 pb-8 px-4 text-center">
+        <div className="text-6xl mb-4">🍔</div>
+        <h1 className="text-5xl md:text-6xl font-bold text-innout-red dark:text-red-400 mb-4">
+          BurgerRun
+        </h1>
+        <p className="text-xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto mb-2">
+          Organize group orders from In-N-Out
+        </p>
+        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          Everyone picks what they want, you collect the money
+        </p>
+      </div>
+
+      {/* How it Works Section */}
+      <div className="px-4 pb-12">
+        <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">How it works</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+          {/* Step 1 */}
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-innout-red dark:bg-red-500 rounded-full flex items-center justify-center mb-3 text-white font-bold text-lg">
+              1
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="organizerName">Your Name</Label>
-              <Input
-                id="organizerName"
-                placeholder="Alex"
-                value={organizerName}
-                onChange={(e) => setOrganizerName(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? 'Creating...' : 'Create Group Order'}
-            </Button>
-          </form>
-          
-          <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
-            <p>
-              Have a link? Just visit it to join an existing order!
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Create Order</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Set up a group order with a name
             </p>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Step 2 */}
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-innout-red dark:bg-red-500 rounded-full flex items-center justify-center mb-3 text-white font-bold text-lg">
+              2
+            </div>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Share Link</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Send your friends the group link
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-innout-red dark:bg-red-500 rounded-full flex items-center justify-center mb-3 text-white font-bold text-lg">
+              3
+            </div>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Everyone Orders</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Each person picks their items
+            </p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-innout-red dark:bg-red-500 rounded-full flex items-center justify-center mb-3 text-white font-bold text-lg">
+              4
+            </div>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Finalize</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              View the full order & total cost
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main CTA Section */}
+      <div className="px-4 pb-12">
+        <Card className="w-full max-w-2xl mx-auto border-innout-red border-2 shadow-xl">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold text-innout-red dark:text-red-400 mb-2">
+              Ready to get started?
+            </CardTitle>
+            <CardDescription className="text-base">
+              Create a new group order below
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateGroup} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="groupName" className="text-base font-semibold">
+                  Order Name
+                </Label>
+                <Input
+                  id="groupName"
+                  placeholder="e.g., Friday Lunch, Team Dinner"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  disabled={loading}
+                  className="text-base p-3 h-auto"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="organizerName" className="text-base font-semibold">
+                  Your Name
+                </Label>
+                <Input
+                  id="organizerName"
+                  placeholder="e.g., Alex"
+                  value={organizerName}
+                  onChange={(e) => setOrganizerName(e.target.value)}
+                  disabled={loading}
+                  className="text-base p-3 h-auto"
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-destructive font-medium">{error}</p>
+              )}
+              <Button
+                type="submit"
+                className="w-full bg-innout-red hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white font-bold text-lg py-6 h-auto"
+                disabled={loading}
+              >
+                {loading ? 'Creating Order...' : 'Create Group Order'}
+              </Button>
+            </form>
+            
+            <div className="mt-8 pt-6 border-t text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Joining an existing order?
+              </p>
+              <p className="text-sm font-medium text-innout-red dark:text-red-400">
+                Just visit the link someone sent you!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
