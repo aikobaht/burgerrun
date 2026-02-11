@@ -160,7 +160,7 @@ export const menuItems: MenuItem[] = [
         type: 'pickles',
         label: 'Pickles',
         options: ['No Pickles', 'Add Pickles'],
-        default: 'No Pickles',
+        default: 'Add Pickles',
       },
       {
         type: 'mustard',
