@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -29,11 +30,14 @@ export function HomePage() {
     setLoading(true);
 
     try {
+      const organizerToken = crypto.randomUUID();
+      
       const { data, error } = await supabase
         .from('groups')
         .insert({
           name: groupName,
           organizer_name: organizerName,
+          organizer_token: organizerToken,
         })
         .select()
         .single();
@@ -51,11 +55,16 @@ export function HomePage() {
 
       setCurrentGroup(data);
 
+      // Show success toast
+      toast.success('Group created! Waiting for others to join...');
+
       // Navigate to order page
       navigate(`/group/${data.id}`);
     } catch (err) {
       console.error('Error creating group:', err);
-      setError('Failed to create group. Please try again.');
+      const errorMsg = 'Failed to create group. Please try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

@@ -103,7 +103,7 @@ export function OrderPage() {
       )
       .subscribe();
 
-    // Subscribe to order items
+    // Subscribe to order items - only for orders in this group
     const itemsChannel = supabase
       .channel(`order-items-${groupId}`)
       .on(
@@ -115,7 +115,11 @@ export function OrderPage() {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setOrderItems([...orderItems, payload.new as OrderItem]);
+            // Check if this item belongs to an order in this group
+            const orderIds = orders.map(o => o.id);
+            if (orderIds.includes(payload.new.order_id)) {
+              setOrderItems([...orderItems, payload.new as OrderItem]);
+            }
           } else if (payload.eventType === 'UPDATE') {
             setOrderItems(orderItems.map(i => i.id === payload.new.id ? payload.new as OrderItem : i));
           } else if (payload.eventType === 'DELETE') {

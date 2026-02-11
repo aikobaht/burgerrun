@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Label } from './ui/label';
@@ -94,10 +95,10 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
       setSpecialInstructions('');
       
       // Show success feedback
-      alert('Added to order!');
+      toast.success(`Added ${quantity}x ${item.name} to order!`);
     } catch (err) {
       console.error('Error adding item:', err);
-      alert('Failed to add item. Please try again.');
+      toast.error('Failed to add item. Please try again.');
     } finally {
       setAdding(false);
     }

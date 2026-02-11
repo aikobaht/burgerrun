@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { HomePage } from './components/HomePage';
 import { JoinPage } from './components/JoinPage';
 import { OrderPage } from './components/OrderPage';
@@ -8,6 +9,7 @@ import { PrintPage } from './components/PrintPage';
 function App() {
   return (
     <BrowserRouter>
+      <Toaster />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/join/:groupId" element={<JoinPage />} />

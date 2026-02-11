@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/lib/store';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -74,12 +75,15 @@ export function JoinPage() {
     setJoining(true);
 
     try {
+      const personToken = crypto.randomUUID();
+      
       // Create an order for this person
       const { data, error } = await supabase
         .from('orders')
         .insert({
           group_id: groupId!,
           person_name: personName,
+          person_token: personToken,
         })
         .select()
         .single();
@@ -97,11 +101,16 @@ export function JoinPage() {
 
       setCurrentGroup(group);
 
+      // Show success toast
+      toast.success(`Welcome ${personName}! Ready to order?`);
+
       // Navigate to order page
       navigate(`/group/${group.id}`);
     } catch (err) {
       console.error('Error joining group:', err);
-      setError('Failed to join group. Please try again.');
+      const errorMsg = 'Failed to join group. Please try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setJoining(false);
     }
