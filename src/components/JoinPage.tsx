@@ -7,15 +7,9 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Moon, Sun } from 'lucide-react';
 import type { Group } from '@/lib/types';
 
-interface JoinPageProps {
-  darkMode?: boolean;
-  onDarkModeChange?: (dark: boolean) => void;
-}
-
-export function JoinPage({ darkMode = false, onDarkModeChange }: JoinPageProps) {
+export function JoinPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { setSession, setCurrentGroup, session, orders } = useStore();
@@ -161,7 +155,7 @@ export function JoinPage({ darkMode = false, onDarkModeChange }: JoinPageProps) 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white p-4 flex items-center justify-center">
         <Card className="w-full max-w-md border-innout-red border-2">
           <CardContent className="p-6 text-center">
             Loading...
@@ -173,17 +167,7 @@ export function JoinPage({ darkMode = false, onDarkModeChange }: JoinPageProps) 
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
-        <div className="absolute top-4 right-4">
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => onDarkModeChange?.(!darkMode)}
-            className="rounded-full"
-          >
-            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </Button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white p-4 flex items-center justify-center">
         <Card className="w-full max-w-md border-innout-red border-2">
           <CardContent className="p-6 text-center">
             <p className="text-destructive mb-4">{error}</p>
@@ -195,18 +179,7 @@ export function JoinPage({ darkMode = false, onDarkModeChange }: JoinPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 p-4 flex items-center justify-center">
-      {/* Dark Mode Toggle */}
-      <div className="absolute top-4 right-4">
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={() => onDarkModeChange?.(!darkMode)}
-          className="rounded-full"
-        >
-          {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white p-4 flex items-center justify-center">
 
       <Card className="w-full max-w-md border-innout-red border-2">
         <CardHeader className="text-center">

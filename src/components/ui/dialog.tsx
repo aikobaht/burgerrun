@@ -9,7 +9,7 @@ const Dialog = ({ open, onOpenChange, children }: { open: boolean; onOpenChange:
         <div className="fixed inset-0 z-50">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50"
+            className="fixed inset-0 bg-black/20"
             onClick={() => onOpenChange(false)}
           />
           {/* Dialog content */}
@@ -29,7 +29,7 @@ const DialogContent = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'relative w-full bg-background p-6 shadow-lg rounded-lg border',
+      'relative w-full bg-white p-6 shadow-xl rounded-lg border-2 border-gray-300',
       className
     )}
     {...props}

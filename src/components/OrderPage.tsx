@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -7,20 +7,17 @@ import { useStore } from '@/lib/store';
 import { generateShareUrl, copyToClipboard } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 import { Skeleton } from './ui/skeleton';
 import { MenuItemCard } from './MenuItemCard';
 import { OrderSummary } from './OrderSummary';
 import { categories, getMenuItemsByCategory, getSecretMenuItems } from '@/lib/menu';
-import { Share2, Eye, Printer, QrCode, Moon, Sun } from 'lucide-react';
+import { Share2, Eye, Printer, QrCode } from 'lucide-react';
 import type { Order, OrderItem } from '@/lib/types';
 
-interface OrderPageProps {
-  darkMode?: boolean;
-  onDarkModeChange?: (dark: boolean) => void;
-}
-
-export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps) {
+export function OrderPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const {
@@ -38,6 +35,11 @@ export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [promptName, setPromptName] = useState('');
+  
+  // Refs for category sections
+  const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (!session || session.groupId !== groupId) {
@@ -49,6 +51,11 @@ export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps
       setIsLoading(true);
       await loadGroupData();
       setIsLoading(false);
+      
+      // Check if we need to show name prompt
+      if (!session.personName || session.personName.trim() === '') {
+        setShowNamePrompt(true);
+      }
     };
 
     initData();
@@ -265,6 +272,26 @@ export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const handleConfirmName = () => {
+    if (promptName.trim() && session) {
+      useStore.getState().setSession({
+        ...session,
+        personName: promptName.trim(),
+      });
+      setShowNamePrompt(false);
+      toast.success(`Welcome, ${promptName.trim()}!`);
+    }
+  };
+
+  const scrollToCategory = (category: string) => {
+    const element = categoryRefs.current[category];
+    if (element) {
+      const yOffset = -120; // Account for sticky header
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
   if (!session || !currentGroup) {
     return <div>Loading...</div>;
   }
@@ -286,9 +313,9 @@ export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps
   const shareUrl = generateShareUrl(groupId!);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900 pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white pb-20">
       {/* Header */}
-      <div className="bg-innout-red dark:bg-red-700 text-white p-4 sticky top-0 z-10 shadow-md">
+      <div className="bg-innout-red text-white p-4 sticky top-0 z-10 shadow-md">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div>
@@ -298,18 +325,10 @@ export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps
             <div className="flex gap-2 items-start">
               {/* Order Count Badge */}
               {myItemCount > 0 && (
-                <div className="bg-innout-red dark:bg-red-700 border-2 border-white rounded-full w-10 h-10 flex items-center justify-center text-white font-bold text-sm">
+                <div className="bg-white text-innout-red border-2 border-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm">
                   {myItemCount}
                 </div>
               )}
-              <Button
-                size="icon"
-                variant="secondary"
-                onClick={() => onDarkModeChange?.(!darkMode)}
-                className="text-xs"
-              >
-                {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
             </div>
           </div>
           
@@ -356,7 +375,75 @@ export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps
             )}
           </div>
         </div>
+        
+        {/* Sticky Category Navigation */}
+        <div className="max-w-4xl mx-auto mt-3 overflow-x-auto">
+          <div className="flex gap-2 pb-2 min-w-max">
+            {categories.map((category) => (
+              <Button
+                key={category}
+                variant={activeCategory === category && !showSecretMenu ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setActiveCategory(category);
+                  setShowSecretMenu(false);
+                  scrollToCategory(category);
+                }}
+                className={activeCategory === category && !showSecretMenu ? 'bg-white text-innout-red' : 'bg-white/90 text-innout-red border-white hover:bg-white'}
+              >
+                {category}
+              </Button>
+            ))}
+            <Button
+              variant={showSecretMenu ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setShowSecretMenu(true);
+                scrollToCategory('Secret Menu');
+              }}
+              className={showSecretMenu ? 'bg-white text-innout-red' : 'bg-white/90 text-innout-red border-white hover:bg-white whitespace-nowrap'}
+            >
+              🤫 Secret Menu
+            </Button>
+          </div>
+        </div>
       </div>
+
+      {/* Name Prompt Modal */}
+      <Dialog open={showNamePrompt} onOpenChange={setShowNamePrompt}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Who are you ordering for?</DialogTitle>
+            <DialogDescription>
+              Let us know your name so we can track your order
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="promptName">Your Name</Label>
+              <Input
+                id="promptName"
+                placeholder="e.g., Alex or Alex T."
+                value={promptName}
+                onChange={(e) => setPromptName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleConfirmName();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <Button
+              onClick={handleConfirmName}
+              className="w-full bg-innout-red hover:bg-red-700 text-white"
+              disabled={!promptName.trim()}
+            >
+              Confirm
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* QR Code Modal */}
       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
@@ -438,48 +525,50 @@ export function OrderPage({ darkMode = false, onDarkModeChange }: OrderPageProps
           </Card>
         )}
 
-        {/* Category Navigation */}
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
-          {categories.map((category) => (
-            <Button
-              key={category}
-              variant={activeCategory === category && !showSecretMenu ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setActiveCategory(category);
-                setShowSecretMenu(false);
-              }}
-            >
-              {category}
-            </Button>
-          ))}
-          <Button
-            variant={showSecretMenu ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setShowSecretMenu(!showSecretMenu)}
-            className="whitespace-nowrap"
-          >
-            🤫 Secret Menu
-          </Button>
-        </div>
-
-        {/* Menu Items */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {isLoading ? (
-            <>
-              <Skeleton className="h-80" />
-              <Skeleton className="h-80" />
-            </>
-          ) : (
-            menuItemsToShow.map((item) => (
-              <MenuItemCard 
-                key={item.id} 
-                item={item}
-                isFinalized={currentGroup.is_finalized || false}
-              />
-            ))
-          )}
-        </div>
+        {/* Menu Items by Category */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <Skeleton className="h-80" />
+            <Skeleton className="h-80" />
+          </div>
+        ) : showSecretMenu ? (
+          <div ref={(el) => { categoryRefs.current['Secret Menu'] = el; }}>
+            <h2 className="text-2xl font-bold text-innout-red mb-4">🤫 Secret Menu</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {getSecretMenuItems().map((item) => (
+                <MenuItemCard 
+                  key={item.id} 
+                  item={item}
+                  isFinalized={currentGroup.is_finalized || false}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          categories.map((category) => {
+            const items = getMenuItemsByCategory(category);
+            if (items.length === 0) return null;
+            
+            return (
+              <div 
+                key={category} 
+                ref={(el) => { categoryRefs.current[category] = el; }}
+                className="mb-8"
+              >
+                <h2 className="text-2xl font-bold text-innout-red mb-4">{category}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {items.map((item) => (
+                    <MenuItemCard 
+                      key={item.id} 
+                      item={item}
+                      isFinalized={currentGroup.is_finalized || false}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        )}
 
         {/* Order Summary */}
         <OrderSummary isFinalized={currentGroup.is_finalized || false} />

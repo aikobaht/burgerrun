@@ -6,14 +6,9 @@ import { formatCustomizations, copyToClipboard } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Trash2, Printer, Lock, Unlock, Copy, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Trash2, Printer, Lock, Unlock, Copy } from 'lucide-react';
 
-interface ReviewPageProps {
-  darkMode?: boolean;
-  onDarkModeChange?: (dark: boolean) => void;
-}
-
-export function ReviewPage({ darkMode = false, onDarkModeChange }: ReviewPageProps) {
+export function ReviewPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { session, currentGroup, orders, orderItems, setOrders, setOrderItems, setCurrentGroup } = useStore();
@@ -125,50 +120,74 @@ export function ReviewPage({ darkMode = false, onDarkModeChange }: ReviewPagePro
   };
 
   const handleFinalizeOrder = async () => {
-    if (!currentGroup) return;
+    if (!currentGroup) {
+      console.error('handleFinalizeOrder: currentGroup is null');
+      toast.error('Cannot finalize: Group data not loaded');
+      return;
+    }
 
     if (!confirm('Finalize this order? Changes will be locked until reopened.')) return;
 
     setIsFinalizing(true);
 
     try {
-      const { error } = await supabase
+      console.log('Finalizing order for group:', groupId);
+      const { data, error } = await supabase
         .from('groups')
         .update({ is_finalized: true })
-        .eq('id', groupId);
+        .eq('id', groupId)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error during finalization:', error);
+        throw error;
+      }
 
+      console.log('Finalization successful, response:', data);
       setCurrentGroup({ ...currentGroup, is_finalized: true });
       toast.success('Order finalized! No more changes allowed.');
     } catch (err) {
       console.error('Error finalizing order:', err);
-      toast.error('Failed to finalize order');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Failed to finalize order: ${errorMessage}`);
     } finally {
       setIsFinalizing(false);
     }
   };
 
   const handleReopenOrder = async () => {
-    if (!currentGroup) return;
+    if (!currentGroup) {
+      console.error('handleReopenOrder: currentGroup is null');
+      toast.error('Cannot reopen: Group data not loaded');
+      return;
+    }
 
     if (!confirm('Reopen this order? Changes will be allowed again.')) return;
 
     setIsFinalizing(true);
 
     try {
-      const { error } = await supabase
+      console.log('Reopening order for group:', groupId);
+      const { data, error } = await supabase
         .from('groups')
         .update({ is_finalized: false })
-        .eq('id', groupId);
+        .eq('id', groupId)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error during reopening:', error);
+        throw error;
+      }
 
+      console.log('Reopening successful, response:', data);
       setCurrentGroup({ ...currentGroup, is_finalized: false });
       toast.success('Order reopened! Changes are now allowed.');
     } catch (err) {
       console.error('Error reopening order:', err);
-      toast.error('Failed to reopen order');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Failed to reopen order: ${errorMessage}`);
     } finally {
       setIsFinalizing(false);
     }
@@ -202,33 +221,23 @@ export function ReviewPage({ darkMode = false, onDarkModeChange }: ReviewPagePro
   const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-innout-cream to-white">
       {/* Header */}
-      <div className="bg-innout-red dark:bg-red-700 text-white p-4 sticky top-0 z-10 shadow-md">
+      <div className="bg-innout-red text-white p-4 sticky top-0 z-10 shadow-md">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-2 justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                size="icon"
-                variant="secondary"
-                onClick={() => navigate(`/group/${groupId}`)}
-                className="h-8 w-8"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">Review Orders</h1>
-                <p className="text-sm opacity-90">{currentGroup.name}</p>
-              </div>
-            </div>
+          <div className="flex items-center gap-3 mb-2">
             <Button
               size="icon"
               variant="secondary"
-              onClick={() => onDarkModeChange?.(!darkMode)}
-              className="text-xs h-8 w-8"
+              onClick={() => navigate(`/group/${groupId}`)}
+              className="h-8 w-8"
             >
-              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <ArrowLeft className="w-4 h-4" />
             </Button>
+            <div>
+              <h1 className="text-xl font-bold">Review Orders</h1>
+              <p className="text-sm opacity-90">{currentGroup.name}</p>
+            </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
